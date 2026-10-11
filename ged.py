@@ -575,9 +575,9 @@ def date_flags(parser):
 
 def parser():
     p = argparse.ArgumentParser(prog="ged", description="Query GlobalEduca from the terminal (standard library only).",
-        epilog="Credentials: GED_USERNAME and GED_PASSWORD. Cookies are reused automatically. Example: ged horario list --json. Opening details may mark them as read on the server.")
+        epilog="Required school: GED_CENTRO. Credentials: GED_USERNAME and GED_PASSWORD. Cookies are reused automatically. Example: ged horario list --json. Opening details may mark them as read on the server.")
     p.add_argument("--version", action="version", version=f"ged {VERSION}")
-    p.add_argument("--centro", default=os.environ.get("GED_CENTRO", "lsmaravillas"), help="School identifier (GED_CENTRO; default: lsmaravillas)")
+    p.set_defaults(centro=os.environ.get("GED_CENTRO"))
     p.add_argument("--state-dir", default=os.environ.get("GED_STATE_DIR", str(Path(os.environ.get("XDG_STATE_HOME", str(Path.home() / ".local/state"))) / "ged")),
                    help="Local cookie directory (GED_STATE_DIR)")
     p.add_argument("--timeout", type=positive, default=30, help="HTTP timeout in seconds")
@@ -753,6 +753,8 @@ def main(argv=None):
     try:
         if args.json and getattr(args, "html", False):
             raise Error("--json and --html cannot be combined.")
+        if not args.centro:
+            raise Error("GED_CENTRO is required. Set it to your school's portal identifier.")
         client = Client(args.centro, args.state_dir, args.timeout)
         with state_lock(client):
             data = run(client, args)

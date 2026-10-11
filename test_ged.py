@@ -1,11 +1,39 @@
 import argparse
+import contextlib
 import http.cookiejar
+import io
+import json
 import os
 import tempfile
 import unittest
 from unittest.mock import patch
 
 import ged
+
+
+class ConfigurationTests(unittest.TestCase):
+    def test_missing_or_empty_school_fails_before_creating_client(self):
+        for environment in ({}, {"GED_CENTRO": ""}):
+            with self.subTest(environment=environment), patch.dict(os.environ, environment, clear=True), \
+                    patch.object(ged, "Client") as client, contextlib.redirect_stdout(io.StringIO()) as output:
+                self.assertEqual(ged.main(["resumen", "--json"]), 1)
+                self.assertIn("GED_CENTRO is required", json.loads(output.getvalue())["error"])
+                client.assert_not_called()
+
+    def test_school_is_taken_from_environment(self):
+        with patch.dict(os.environ, {"GED_CENTRO": "example-school"}, clear=True), \
+                patch.object(ged, "Client") as client, patch.object(ged, "run", return_value={}), \
+                patch.object(ged, "state_lock", return_value=contextlib.nullcontext()), \
+                contextlib.redirect_stdout(io.StringIO()) as output:
+            self.assertEqual(ged.main(["resumen", "--json"]), 0)
+            self.assertEqual(client.call_args.args[0], "example-school")
+            self.assertEqual(json.loads(output.getvalue())["center"], "example-school")
+
+    def test_help_does_not_require_school_configuration(self):
+        with patch.dict(os.environ, {}, clear=True), contextlib.redirect_stdout(io.StringIO()):
+            with self.assertRaises(SystemExit) as result:
+                ged.main(["--help"])
+            self.assertEqual(result.exception.code, 0)
 
 
 class AuthTests(unittest.TestCase):

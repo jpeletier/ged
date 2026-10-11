@@ -8,6 +8,7 @@ A self-contained CLI for **Python 3.10 or newer**, implemented in `ged.py` using
 python3 ged.py --help
 python3 ged.py horario list --help
 
+export GED_CENTRO='your_school_identifier'
 export GED_USERNAME='your_username'
 read -rs -p 'Password: ' GED_PASSWORD
 export GED_PASSWORD
@@ -25,10 +26,12 @@ Command and option names retain the Spanish terminology used by the portal. Help
 |---|---|
 | `GED_USERNAME` | Account username; `GED_USER` is also accepted |
 | `GED_PASSWORD` | Account password; `GED_PASS` is also accepted |
-| `GED_CENTRO` | School identifier; defaults to `lsmaravillas` |
+| `GED_CENTRO` | Required school identifier; there is no default |
 | `GED_STATE_DIR` | Cookie directory; defaults to `$XDG_STATE_HOME/ged` or `~/.local/state/ged` |
 
-Global options include `--centro`, `--state-dir`, `--timeout`, and `--json`. Place configuration options before the subcommand.
+`GED_CENTRO` must be set for every query or authentication command. A missing or empty value is an error, even when a cookie is already available. Use the school identifier from your portal URL: `https://portal.globaleduca.com/<school-identifier>`. Help and version commands do not require configuration.
+
+Global options include `--state-dir`, `--timeout`, and `--json`. Place configuration options before the subcommand.
 
 Cookies are stored in `<state-directory>/<school>/cookies.lwp` with private permissions. Each request reuses the stored session and checks the server's response. If the session is invalid or expired, the application authenticates through CAS using the environment variables and retries **once**. Session cookies survive separate CLI invocations. Passwords are never saved.
 
@@ -68,7 +71,7 @@ ged extraescolares view 123
 # Report cards, interim grades, and authorizations
 ged boletines list
 ged parciales list
-ged boletines download --url /lsmaravillas/DOCUMENT_PATH --output report.pdf
+ged boletines download --url "/${GED_CENTRO}/DOCUMENT_PATH" --output report.pdf
 ged autorizaciones list
 ged autorizaciones list --pasadas
 ged autorizaciones view 123
